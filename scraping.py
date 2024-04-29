@@ -7,16 +7,14 @@ import requests
 file = open("data.csv", "w")
 file.close()
 
+driver = webdriver.Firefox()
 for i in range(1,1001):
-    driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
     time.sleep(1)
     elements = driver.find_elements(By.CLASS_NAME, "frame")
     links = [x.get_attribute("href") for x in elements]
-    driver.quit()
     links = [x for x in links if x is not None]
 
-    driver = webdriver.Firefox()
     for link in links:
         driver.get(link)
         time.sleep(0.6)
@@ -28,4 +26,4 @@ for i in range(1,1001):
         with open("data.csv", "a") as f:
             f.write(f"{title}, {year}, {stars[0]}, {stars[1]}, {stars[2]}, {stars[3]}, {stars[4]}, {stars[5]}, {stars[6]}, {stars[7]}, {stars[8]}, {stars[9]}\n")
 
-    driver.quit()
+driver.quit()
