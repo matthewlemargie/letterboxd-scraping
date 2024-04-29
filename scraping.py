@@ -4,10 +4,13 @@ from bs4 import BeautifulSoup
 import time
 import requests
 
+file = open("data.csv", "w")
+file.close()
+
 for i in range(1,1001):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
-    time.sleep(3)
+    time.sleep(1)
     elements = driver.find_elements(By.CLASS_NAME, "frame")
     links = [x.get_attribute("href") for x in elements]
     driver.quit()
@@ -16,7 +19,7 @@ for i in range(1,1001):
     driver = webdriver.Firefox()
     for link in links:
         driver.get(link)
-        time.sleep(0.75)
+        time.sleep(0.6)
         soup = BeautifulSoup(driver.page_source, "html.parser")
         title = soup.find("div", class_="col-17").find("h1").text
         year = soup.find("div", class_="col-17").find("a").text
