@@ -24,3 +24,5 @@ with open("data.csv", "a") as f:
             stars = soup.find("div", class_="rating-histogram clear rating-histogram-exploded").find_all("a")
             stars = [star.text.split(" ")[-1] for star in stars]
             f.write(f"{title}, {year}, {stars[0]}, {stars[1]}, {stars[2]}, {stars[3]}, {stars[4]}, {stars[5]}, {stars[6]}, {stars[7]}, {stars[8]}, {stars[9]}\n")
+
+        driver.quit()
