@@ -2,14 +2,15 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
-import requests
+from tqdm import tqdm
 
 file = open("data.csv", "w")
 file.close()
 
-for i in range(1,501):
+for i in tqdm(range(1,501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
+    time.sleep(1)
     elements,links = None, None
     while not elements or not links:
         elements = driver.find_elements(By.CLASS_NAME, "frame")
@@ -29,4 +30,3 @@ for i in range(1,501):
         with open("data.csv", "a") as f:
             f.write(f"{title}, {year}, {stars[0]}, {stars[1]}, {stars[2]}, {stars[3]}, {stars[4]}, {stars[5]}, {stars[6]}, {stars[7]}, {stars[8]}, {stars[9]}\n")
     driver.quit()
-
