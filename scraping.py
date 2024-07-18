@@ -6,15 +6,21 @@ from tqdm import tqdm
 
 file = open("data.csv", "w")
 file.close()
-
-driver = webdriver.Firefox()
 for i in tqdm(range(1,501)):
+    driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
     time.sleep(1)
     elements,links = None, None
+    i = 0
     while not elements or not links:
+        if i == 5:
+            break
         elements = driver.find_elements(By.CLASS_NAME, "frame")
         links = [x.get_attribute("href") for x in elements]
+        time.sleep(1)
+        i += 1
+    if i == 5:
+        continue
     links = [x for x in links if x is not None]
 
     for link in links:
@@ -29,4 +35,4 @@ for i in tqdm(range(1,501)):
         stars = [star.text.replace(",", "").split(" ")[0] for star in stars]
         with open("data.csv", "a") as f:
             f.write(f"{title}, {year}, {stars[0]}, {stars[1]}, {stars[2]}, {stars[3]}, {stars[4]}, {stars[5]}, {stars[6]}, {stars[7]}, {stars[8]}, {stars[9]}\n")
-driver.quit()
+    driver.quit()
