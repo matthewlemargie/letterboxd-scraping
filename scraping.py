@@ -4,9 +4,9 @@ from bs4 import BeautifulSoup
 import time
 from tqdm import tqdm
 
-file = open("data.csv", "w")
+file = open("data.csv", "a")
 file.close()
-for i in tqdm(range(1,501)):
+for i in tqdm(range(61,501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
     time.sleep(1)
