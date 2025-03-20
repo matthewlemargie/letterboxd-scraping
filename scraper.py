@@ -42,12 +42,10 @@ if not os.path.exists("letterboxd.csv"):
     with open("letterboxd.csv", "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(header)
-else:
-    df = pd.read_csv("letterboxd.csv")
-    df = df.drop_duplicates()
-    df.to_csv("letterboxd.csv", index=False)
 
 start_page = line_count // 72 + 1
+
+first_loop = True
 
 for i in tqdm(range(start_page, 501)):
     driver = webdriver.Firefox()
@@ -195,7 +193,9 @@ for i in tqdm(range(start_page, 501)):
             break
     driver.quit()
 
-df = pd.read_csv("letterboxd.csv")
-df = df.drop_duplicates()
-df.to_csv("letterboxd.csv", index=False)
+    if first_loop:
+        df = pd.read_csv("letterboxd.csv")
+        df = df.drop_duplicates()
+        df.to_csv("letterboxd.csv", index=False)
+        first_loop = False
 

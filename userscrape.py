@@ -14,11 +14,11 @@ if not os.path.exists("users.csv"):
     with open("users.csv", "w", newline="") as f:
         writer = csv.writer(f)
 
-for i in tqdm(range(20, 501)):
+for i in tqdm(range(25, 501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
 
-    # first check for reviews else skip 
+    # get list of links for movies on page
     time.sleep(1)
     elements,links = None, None
     i = 0
@@ -34,6 +34,7 @@ for i in tqdm(range(20, 501)):
     links = [x for x in links if x is not None]
     driver.close()
 
+    # iterate through movie links for page i
     for link in links:
         driver = webdriver.Firefox()
         driver.get(f"{link}/reviews/by/activity")
@@ -43,29 +44,33 @@ for i in tqdm(range(20, 501)):
             for line in f:
                 users_set.add(line.strip())
 
+        # iterate through all available pages (256) of reviews for the movie 
         while True:
-            success = False
-            while not success:
-                try:
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
-                    section = soup.find("section", "viewings-list")
-                    success = True
-                except:
-                    pass
-
-            reviews = section.find_all("li", "film-detail")
-
-            users = [r.find("a").get("href").split("/")[1] for r in reviews]
-
-            with open("users.csv", "a", newline="") as f:
-                writer = csv.writer(f)
-                for user in users:
-                    if user not in users_set:
-                        writer.writerow([user])
-
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             try:
-                driver.find_element(By.CSS_SELECTOR, "a[class=next]").click()
+                success = False
+                while not success:
+                    try:
+                        soup = BeautifulSoup(driver.page_source, "html.parser")
+                        section = soup.find("section", "viewings-list")
+                        success = True
+                    except:
+                        pass
+
+                reviews = section.find_all("li", "film-detail")
+
+                users = [r.find("a").get("href").split("/")[1] for r in reviews]
+
+                with open("users.csv", "a", newline="") as f:
+                    writer = csv.writer(f)
+                    for user in users:
+                        if user not in users_set:
+                            writer.writerow([user])
+
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                try:
+                    driver.find_element(By.CSS_SELECTOR, "a[class=next]").click()
+                except:
+                    break
             except:
                 break
 

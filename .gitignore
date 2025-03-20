@@ -1,5 +1,8 @@
 letterboxd.csv
 users.csv
+reviews.csv
+user_reviews.csv
 users-saved.csv
+last_page_ended.txt
 
 /.ipynb_checkpoints
