@@ -47,11 +47,10 @@ else:
     df = df.drop_duplicates()
     df.to_csv("letterboxd.csv", index=False)
 
-driver = webdriver.Firefox()
-
 start_page = line_count // 72 + 1
 
 for i in tqdm(range(start_page, 501)):
+    driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
 
     # first check for reviews else skip 
@@ -109,8 +108,13 @@ for i in tqdm(range(start_page, 501)):
                 time.sleep(1)
                 continue
 
-            stats = stats_div.find_all("a")
-            stats = [re.findall(r'\d+', str(stat.get("data-original-title")).replace(",", ""))[0] for stat in stats]
+            try:
+                stats = stats_div.find_all("a")
+                stats = [re.findall(r'\d+', str(stat.get("data-original-title")).replace(",", ""))[0] for stat in stats]
+            except:
+                total_attempts += 1
+                time.sleep(1)
+                continue
 
             if len(stats) == 3:
                 stats = stats + [""]
@@ -189,9 +193,9 @@ for i in tqdm(range(start_page, 501)):
                 writer.writerow(data)
 
             break
+    driver.quit()
 
 df = pd.read_csv("letterboxd.csv")
 df = df.drop_duplicates()
 df.to_csv("letterboxd.csv", index=False)
 
-driver.quit()
