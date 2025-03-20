@@ -30,6 +30,7 @@ if not os.path.exists("user_reviews.csv"):
 
 df = pd.read_csv("user_reviews.csv")
 df = df.drop_duplicates()
+completed_movies_set = df.movie.unique()
 df.to_csv("user_reviews.csv", index=False)
 
 if not os.path.exists("last_page_ended.txt"):
@@ -63,11 +64,14 @@ for i in tqdm(range(page_start, 501)):
 
     # iterate through movie links for page i
     for link in links:
-        driver = webdriver.Firefox()
-        driver.get(f"{link}/reviews/by/activity")
-
         # movie_name_from_url
         movie_name_from_url = link.split("/")[-2]
+
+        if movie_name_from_url in completed_movies_set:
+            continue
+
+        driver = webdriver.Firefox()
+        driver.get(f"{link}/reviews/by/activity")
 
         # iterate through all available pages (256) of reviews for the movie 
         for _ in range(100):

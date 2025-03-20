@@ -2,6 +2,8 @@ letterboxd.csv
 users.csv
 reviews.csv
 user_reviews.csv
+user_reviews_multithread.csv
+user_reviews_multithread_saved.csv
 users-saved.csv
 last_page_ended.txt
 
