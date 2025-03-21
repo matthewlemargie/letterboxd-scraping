@@ -170,7 +170,10 @@ def divide_list(lst, divisor):
 
 num_threads = 4
 
-for idx in tqdm(range(1, 501)):
+num_pages_finished = len(completed_movies_set) // 72
+start_page = num_pages_finished + 1
+
+for idx in tqdm(range(start_page, 501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{idx}/")
 
