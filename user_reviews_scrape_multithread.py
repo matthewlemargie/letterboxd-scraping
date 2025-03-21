@@ -34,11 +34,11 @@ df = pd.read_csv("user_reviews_multithread.csv")
 df = df.drop_duplicates()
 df.to_csv("user_reviews_multithread.csv", index=False)
 
-keys = df.groupby("movie").size()[df.groupby("movie").size() != 1200].index
-values = df.groupby("movie").size()[df.groupby("movie").size() != 1200]
+keys = df.groupby("movie").size()[df.groupby("movie").size() != 720].index
+values = df.groupby("movie").size()[df.groupby("movie").size() != 720]
 incomplete_movies_dict = dict(zip(keys, values))
 
-completed_movies_set  = set(df.groupby("movie").size()[df.groupby("movie").size() >= 1200].index)
+completed_movies_set  = set(df.groupby("movie").size()[df.groupby("movie").size() >= 720].index)
 
 del df
 
@@ -56,8 +56,8 @@ def thread(page_idx, link, link_idx):
         review_page_start = incomplete_movies_dict[movie_name_from_url] // 12
 
 
-    # iterate through all available pages (256) of reviews for the movie 
-    for review_page_num in range(review_page_start, 100):
+    # iterate through first 60 pages of reviews for the movie 
+    for review_page_num in range(review_page_start, 60):
         try:
             # make sure page has loaded
             success = False
@@ -74,15 +74,18 @@ def thread(page_idx, link, link_idx):
 
             attrib_blocks = [r.find("div", class_="attribution-block") for r in review_divs]
 
-            if not review_page_num and movie_name_from_url in incomplete_movies_dict:
-                attrib_blocks = attrib_blocks[(incomplete_movies_dict[movie_name_from_url] % 12):]
-
             userdata = []
 
             spans = [block.find_all("span") for block in attrib_blocks]
 
+            x = 0
+            
             for block_num, block in enumerate(attrib_blocks):
                 try:
+                    if review_page_num == review_page_start and movie_name_from_url in incomplete_movies_dict:
+                        if x < incomplete_movies_dict[movie_name_from_url] % 12:
+                            x += 1
+                            continue
                     review_popularity = review_page_num * 12 + block_num + 1
                     spans = block.find_all("span")
                     out = [film_popularity, review_popularity, 0, 0, "", "", 0]
