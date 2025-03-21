@@ -31,9 +31,14 @@ if not os.path.exists("user_reviews_multithread.csv"):
         writer.writerow(header)
 
 df = pd.read_csv("user_reviews_multithread.csv")
-completed_movies_set = df.movie.unique()
 df = df.drop_duplicates()
 df.to_csv("user_reviews_multithread.csv", index=False)
+
+keys = df.groupby("movie").size()[df.groupby("movie").size() != 1200].index
+values = df.groupby("movie").size()[df.groupby("movie").size() != 1200]
+incomplete_movies_dict = dict(zip(keys, values))
+
+completed_movies_set  = set(df.groupby("movie").size()[df.groupby("movie").size() >= 1200].index)
 
 del df
 
@@ -43,10 +48,16 @@ def thread(page_idx, link, link_idx):
     film_popularity = (page_idx - 1) * 72 + link_idx + 1
 
     driver = webdriver.Firefox()
-    driver.get(f"{link}/reviews/by/activity")
+    if movie_name_from_url not in incomplete_movies_dict:
+        driver.get(f"{link}/reviews/by/activity")
+        review_page_start = 0
+    else:
+        driver.get(f"{link}/reviews/by/activity/page/{incomplete_movies_dict[movie_name_from_url] // 12}")
+        review_page_start = incomplete_movies_dict[movie_name_from_url] // 12
+
 
     # iterate through all available pages (256) of reviews for the movie 
-    for review_page_num in range(100):
+    for review_page_num in range(review_page_start, 100):
         try:
             # make sure page has loaded
             success = False
@@ -63,44 +74,50 @@ def thread(page_idx, link, link_idx):
 
             attrib_blocks = [r.find("div", class_="attribution-block") for r in review_divs]
 
+            if not review_page_num and movie_name_from_url in incomplete_movies_dict:
+                attrib_blocks = attrib_blocks[(incomplete_movies_dict[movie_name_from_url] % 12):]
+
             userdata = []
 
             spans = [block.find_all("span") for block in attrib_blocks]
 
             for block_num, block in enumerate(attrib_blocks):
-                review_popularity = review_page_num * 12 + block_num + 1
-                spans = block.find_all("span")
-                out = [film_popularity, review_popularity, 0, 0, "", "", 0]
-                for s in range(len(spans)):
-                    span = spans[s]
-                    if "rating" in span.get("class"):
-                        try:
-                            out[2] = int(span.get("class")[-1].split("-")[-1])
-                        except:
-                            pass
-                    if "icon-liked" in span.get("class"):
-                        try:
-                            out[3] = 1
-                        except:
-                            pass
-                    if "content-metadata" in span.get("class"):
-                        try:
-                            # user
-                            out[4] = span.find("a", class_="context").get("href").split("/")[1]
-                        except:
-                            pass
-                        try:
-                            # date
-                            out[5] = span.find("span", class_="_nobr").text
-                        except:
-                            pass
-                        try:
-                            # comments
-                            out[6] = int(span.find("a", class_="has-icon icon-comment icon-16 comment-count").text)
-                        except:
-                            pass
+                try:
+                    review_popularity = review_page_num * 12 + block_num + 1
+                    spans = block.find_all("span")
+                    out = [film_popularity, review_popularity, 0, 0, "", "", 0]
+                    for s in range(len(spans)):
+                        span = spans[s]
+                        if "rating" in span.get("class"):
+                            try:
+                                out[2] = int(span.get("class")[-1].split("-")[-1])
+                            except:
+                                pass
+                        if "icon-liked" in span.get("class"):
+                            try:
+                                out[3] = 1
+                            except:
+                                pass
+                        if "content-metadata" in span.get("class"):
+                            try:
+                                # user
+                                out[4] = span.find("a", class_="context").get("href").split("/")[1]
+                            except:
+                                pass
+                            try:
+                                # date
+                                out[5] = span.find("span", class_="_nobr").text
+                            except:
+                                pass
+                            try:
+                                # comments
+                                out[6] = int(span.find("a", class_="has-icon icon-comment icon-16 comment-count").text)
+                            except:
+                                pass
 
-                userdata.append(out)
+                    userdata.append(out)
+                except:
+                    continue
 
             try:
                 review_text_div = section.find_all("div", class_="body-text -prose js-review-body js-collapsible-text")
@@ -125,13 +142,15 @@ def thread(page_idx, link, link_idx):
                     writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
                     writer.writerows(userdata)
 
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            try:
-                driver.find_element(By.CSS_SELECTOR, "a[class=next]").click()
-            except:
-                break
+            while True:
+                try:
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    driver.find_element(By.CSS_SELECTOR, "a[class=next]").click()
+                    break
+                except:
+                    pass
         except:
-            break
+            continue
 
     driver.quit()
 
@@ -169,12 +188,13 @@ for idx in tqdm(range(1, 501)):
     if i == 5:
         continue
     links = [x for x in links if x is not None]
-    links = [x for x in links if x.split("/")[-2] not in completed_movies_set]
     driver.quit()
 
     active_threads = []
 
     for link_idx, link in enumerate(links):
+        if link.split("/")[-2] in completed_movies_set:
+            continue
         # Wait for an active thread to finish before adding a new one
         while len(active_threads) >= num_threads:
             for t in active_threads:
