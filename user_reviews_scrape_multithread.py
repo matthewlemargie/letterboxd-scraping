@@ -32,11 +32,15 @@ if not os.path.exists("user_reviews_multithread.csv"):
 
 df = pd.read_csv("user_reviews_multithread.csv")
 df = df.drop_duplicates()
-df.to_csv("user_reviews_multithread.csv", index=False)
 
 keys = df.groupby("movie").size()[df.groupby("movie").size() != 720].index
 values = df.groupby("movie").size()[df.groupby("movie").size() != 720]
 incomplete_movies_dict = dict(zip(keys, values))
+incomplete_movies_set = set(keys)
+
+for movie in incomplete_movies_set:
+    df = df[df.movie != movie]
+df.to_csv("user_reviews_multithread.csv", index=False)
 
 completed_movies_set  = set(df.groupby("movie").size()[df.groupby("movie").size() >= 720].index)
 
