@@ -32,19 +32,16 @@ if not os.path.exists("user_reviews_multithread.csv"):
 
 df = pd.read_csv("user_reviews_multithread.csv")
 df = df.drop_duplicates()
-
-keys = df.groupby("movie").size()[df.groupby("movie").size() != 720].index
-values = df.groupby("movie").size()[df.groupby("movie").size() != 720]
-incomplete_movies_dict = dict(zip(keys, values))
-incomplete_movies_set = set(keys)
-
-for movie in incomplete_movies_set:
-    df = df[df.movie != movie]
-df.to_csv("user_reviews_multithread.csv", index=False)
-
-completed_movies_set  = set(df.groupby("movie").size()[df.groupby("movie").size() >= 720].index)
+review_counts = df.groupby("movie").review_popularity.count()
+filtered = df[df["movie"].isin(review_counts[review_counts == 720].index)]
 
 del df
+
+filtered.to_csv("user_reviews_multithread.csv", index=False)
+
+completed_movies_set  = set(filtered.movie)
+
+del filtered
 
 def thread(page_idx, link, link_idx):
     movie_name_from_url = link.split("/")[-2]
@@ -52,16 +49,16 @@ def thread(page_idx, link, link_idx):
     film_popularity = (page_idx - 1) * 72 + link_idx + 1
 
     driver = webdriver.Firefox()
-    if movie_name_from_url not in incomplete_movies_dict:
-        driver.get(f"{link}/reviews/by/activity")
-        review_page_start = 0
-    else:
-        driver.get(f"{link}/reviews/by/activity/page/{incomplete_movies_dict[movie_name_from_url] // 12}")
-        review_page_start = incomplete_movies_dict[movie_name_from_url] // 12
+    # if movie_name_from_url not in incomplete_movies_dict:
+    driver.get(f"{link}/reviews/by/activity")
+        # review_page_start = 0
+    # else:
+        # driver.get(f"{link}/reviews/by/activity/page/{incomplete_movies_dict[movie_name_from_url] // 12}")
+        # review_page_start = incomplete_movies_dict[movie_name_from_url] // 12
 
 
     # iterate through first 60 pages of reviews for the movie 
-    for review_page_num in range(review_page_start, 60):
+    for review_page_num in range(1, 61):
         try:
             # make sure page has loaded
             success = False
@@ -85,46 +82,48 @@ def thread(page_idx, link, link_idx):
             x = 0
             
             for block_num, block in enumerate(attrib_blocks):
-                try:
-                    if review_page_num == review_page_start and movie_name_from_url in incomplete_movies_dict:
-                        if x < incomplete_movies_dict[movie_name_from_url] % 12:
-                            x += 1
-                            continue
-                    review_popularity = review_page_num * 12 + block_num + 1
-                    spans = block.find_all("span")
-                    out = [film_popularity, review_popularity, 0, 0, "", "", 0]
-                    for s in range(len(spans)):
-                        span = spans[s]
-                        if "rating" in span.get("class"):
-                            try:
-                                out[2] = int(span.get("class")[-1].split("-")[-1])
-                            except:
-                                pass
-                        if "icon-liked" in span.get("class"):
-                            try:
-                                out[3] = 1
-                            except:
-                                pass
-                        if "content-metadata" in span.get("class"):
-                            try:
-                                # user
-                                out[4] = span.find("a", class_="context").get("href").split("/")[1]
-                            except:
-                                pass
-                            try:
-                                # date
-                                out[5] = span.find("span", class_="_nobr").text
-                            except:
-                                pass
-                            try:
-                                # comments
-                                out[6] = int(span.find("a", class_="has-icon icon-comment icon-16 comment-count").text)
-                            except:
-                                pass
+                while True:
+                    try:
+                        # if review_page_num == review_page_start and movie_name_from_url in incomplete_movies_dict:
+                            # if x < incomplete_movies_dict[movie_name_from_url] % 12:
+                                # x += 1
+                                # continue
+                        review_popularity = (review_page_num - 1) * 12 + block_num + 1
+                        spans = block.find_all("span")
+                        out = [film_popularity, review_popularity, 0, 0, "", "", 0]
+                        for s in range(len(spans)):
+                            span = spans[s]
+                            if "rating" in span.get("class"):
+                                try:
+                                    out[2] = int(span.get("class")[-1].split("-")[-1])
+                                except:
+                                    pass
+                            if "icon-liked" in span.get("class"):
+                                try:
+                                    out[3] = 1
+                                except:
+                                    pass
+                            if "content-metadata" in span.get("class"):
+                                try:
+                                    # user
+                                    out[4] = span.find("a", class_="context").get("href").split("/")[1]
+                                except:
+                                    pass
+                                try:
+                                    # date
+                                    out[5] = span.find("span", class_="_nobr").text
+                                except:
+                                    pass
+                                try:
+                                    # comments
+                                    out[6] = int(span.find("a", class_="has-icon icon-comment icon-16 comment-count").text)
+                                except:
+                                    pass
 
-                    userdata.append(out)
-                except:
-                    continue
+                        userdata.append(out)
+                        break
+                    except:
+                        continue
 
             try:
                 review_text_div = section.find_all("div", class_="body-text -prose js-review-body js-collapsible-text")
@@ -157,30 +156,23 @@ def thread(page_idx, link, link_idx):
                 except:
                     pass
         except:
+            while True:
+                try:
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    driver.find_element(By.CSS_SELECTOR, "a[class=next]").click()
+                    break
+                except:
+                    pass
             continue
 
     driver.quit()
 
-def divide_list(lst, divisor):
-    chunk_size = len(lst) // divisor
-    remainder = len(lst) % divisor  # Handle cases where division isn't perfect
-
-    result = []
-    start = 0
-
-    for i in range(divisor):
-        extra = 1 if i < remainder else 0  # Distribute remaining elements
-        result.append(lst[start : start + chunk_size + extra])
-        start += chunk_size + extra
-    
-    return result
-
-num_threads = 4
+num_threads = 3
 
 num_pages_finished = len(completed_movies_set) // 72
 start_page = num_pages_finished + 1
 
-for idx in tqdm(range(start_page, 501)):
+for idx in tqdm(range(1, 501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{idx}/")
 
