@@ -1,6 +1,10 @@
 letterboxd.csv
+letterboxd_saved.csv
 users.csv
 reviews.csv
+reviews_cleaned.csv
+movies.csv
+movies_cleaned.csv
 user_reviews.csv
 user_reviews_multithread.csv
 user_reviews_multithread_saved.csv
