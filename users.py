@@ -14,7 +14,7 @@ if not os.path.exists("users.csv"):
     with open("users.csv", "w", newline="") as f:
         writer = csv.writer(f)
 
-for i in tqdm(range(25, 501)):
+for i in tqdm(range(1, 501)):
     driver = webdriver.Firefox()
     driver.get(f"https://www.letterboxd.com/films/popular/page/{i}/")
 
